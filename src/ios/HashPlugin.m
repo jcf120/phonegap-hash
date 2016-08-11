@@ -27,6 +27,10 @@ typedef NS_ENUM(NSUInteger, HashType) {
 
 @interface HashPlugin()
 
+#pragma mark Instance Methods
+
+- (void) hash: (CDVInvokedUrlCommand*) command;
+
 #pragma mark Class Methods
 
 + (NSString*) hashString:(NSString*) str
@@ -56,46 +60,51 @@ typedef NS_ENUM(NSUInteger, HashType) {
 
 - (void) hashString: (CDVInvokedUrlCommand*) command {
     
-    CDVPluginResult* result = nil;
-    NSString* message = nil;
-    
-    NSDictionary* params = command.arguments[0];
-    NSString* string = params[@"data"];
-    NSString* hash = params[@"hash"];
-    
-    if ( string && hash ) {
-        
-        HashType hashType = [HashPlugin hashTypeForString: hash];
-        message = [HashPlugin hashString: string
-                                hashType: hashType];
-        
-    } else {
-        message = @"Invalid arguments.";
-    }
-    
-    result = [CDVPluginResult resultWithStatus: CDVCommandStatus_OK
-                               messageAsString: message];
-    
-    [self.commandDelegate sendPluginResult: result
-                                callbackId: command.callbackId];
+    [self hash: command];
 }
 
 - (void) hashFile: (CDVInvokedUrlCommand*) command {
     
+    [self hash: command];
+}
+
+#pragma mark Private Cordova Interface Methods
+
+- (void) hash: (CDVInvokedUrlCommand*) command {
+    
     CDVPluginResult* result = nil;
     NSString* message = nil;
+    NSString* data    = nil;
+    NSString* hash    = nil;
     
-    NSDictionary* params = command.arguments[0];
-    NSString* path = params[@"data"];
-    NSString* hash = params[@"hash"];
+    NSArray* args = command.arguments;
+    if ( args.count &&
+        [args[0] isKindOfClass: [NSDictionary class]] ) {
+        
+        data = args[0][@"data"];
+        hash = args[0][@"hash"];
+    }
     
-    if ( path && hash ) {
+    if ( data && hash ) {
         
         HashType hashType = [HashPlugin hashTypeForString: hash];
-        message = [HashPlugin hashFile: path
-                              hashType: hashType];
+        
+        if ([command.methodName isEqualToString: @"hashString"]) {
+            
+            message = [HashPlugin hashString: data
+                                    hashType: hashType];
+            
+        } else if ([command.methodName isEqualToString: @"hashFile"]) {
+            
+            message = [HashPlugin hashFile: data
+                                  hashType: hashType];
+        } else {
+            
+            message = @"Invalid method name.";
+        }
         
     } else {
+        
         message = @"Invalid arguments.";
     }
     
